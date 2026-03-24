@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: xxl-job-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=xxl_job
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --lower_case_table_names=1
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d 
+    networks:
+      - xxl_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  xxl-job-admin:
+    build: .  
+    container_name: xxl-job-admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./xxl-job-admin.properties:/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/xxl-job-admin.properties
+      - /tmp/xxl-job-logs:/data/applogs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - xxl_net
+
+networks:
+  xxl_net:
+    driver: bridge
